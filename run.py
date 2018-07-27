@@ -37,8 +37,6 @@ def get_data():
 
 if __name__ == '__main__':
 
-    standard_list = ['page_id', 'page_title', 'template_name', 'template_key', 'template_value']
-
     # for attribute names
     for attr in AttributeEnum:
         excel_list = search_xlsx(attr)

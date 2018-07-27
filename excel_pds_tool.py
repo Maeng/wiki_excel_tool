@@ -1,6 +1,14 @@
 from db import DB
 import pandas as pd
+import numpy as np
 import math
+
+
+def highlight_diff(data, color='yellow'):
+    attr = 'background-color: {}'.format(color)
+    other = data.xs('First', axis='columns', level=-1)
+    return pd.DataFrame(np.where(data.ne(other, level=0), attr, ''),
+                        index=data.index, columns=data.columns)
 
 
 class ExcelPandasTool:
@@ -13,96 +21,60 @@ class ExcelPandasTool:
         result_list = pd.read_excel(file_name)
         return result_list
 
-    # @staticmethod
-    # def get_excel(file_name, sheet_name):
-    #     result_list = pd.read_excel(file_name, sheet_name)
-    #     return result_list
+    @staticmethod
+    def get_dict_from_df(df):
+        return df.to_dict('records')
 
-    #data = { 'sheet1' : [ {'column_name' : [ cell1, cell2, cell3.. ],
-                        # 'column_name' : [ 0, 1, 2.. ] } ],
-            # 'sheet2' : [ {''} ] ...}
-    # def write_excel(self, data):
-    #     for key in data:
-    #         df = pd.DataFrame(data[key])
-    #         writer = pd.ExcelWriter('', engine='xlsxwriter')
-    #         df.to_excel(writer, sheet_name=key)
-    #         writer.save()
-
-    # def write_excel(self, data, sheet_name):
-    #     df = pd.DataFrame(data)
-    #     writer = pd.ExcelWriter(self.file_name, engine='xlsxwriter', options={'strings_to_urls': False})
-    #     df.to_excel(writer, sheet_name=sheet_name, index=False)
-    #     writer.save()
 
     def write_compare_excel(self, excel_file_list):
         writer = pd.ExcelWriter(self.file_name, engine='xlsxwriter', options={'strings_to_urls': False})
 
-        dic_list = list()
+        df_list = list()
+        df_dropped_list = list()
+
         for file in excel_file_list:
             data = self.get_excel(file)
             df = pd.DataFrame(data)
-            dic_list.append(df.to_dict(orient='records'))
+            df_list.append(df)
             df.to_excel(writer, sheet_name="original_" + file, index=False)
+            df_dropped = df.drop(columns=['wiki_id', 'detail_info'])
+            df_dropped_list.append(df_dropped)
 
-        formerdict = dic_list[1][0]
-        for dic in dic_list[1][1:]:
-            if dic['page_id'] == formerdict['page_id']:
-                print(dic)
-                if type(dic['page_title']) is float and math.isnan(dic['page_title']) :
-                        dic['page_title'] = formerdict['page_title']
-                if type(dic['template_name']) is float and math.isnan(dic['template_name']):
-                    dic['template_name'] = formerdict['template_name']
-                if type(dic['template_key']) is float and math.isnan(dic['template_key']):
-                    dic['template_key'] = formerdict['template_key']
-                if type(dic['template_value']) is float and math.isnan(dic['template_value']):
-                    dic['template_value'] = formerdict['template_value']
-            else:
-                formerdict = dic
+        for df in df_dropped_list[1:]:
+            first_series = df.iloc[0]
+            for tp, series_in_df in df.iterrows():
+                if tp is 935:
+                    print('!')
+                if series_in_df['page_id'] == first_series['page_id']:
+                    if type(series_in_df['page_title']) is float and math.isnan(series_in_df['page_title']):
+                        series_in_df['page_title'] = first_series['page_title']
+                    if type(series_in_df['template_name']) is float and math.isnan(series_in_df['template_name']):
+                        series_in_df['template_name'] = first_series['template_name']
+                    if type(series_in_df['template_key']) is float and math.isnan(series_in_df['template_key']):
+                        series_in_df['template_key'] = first_series['template_key']
+                    if type(series_in_df['template_value']) is float and math.isnan(series_in_df['template_value']):
+                        series_in_df['template_value'] = first_series['template_value']
 
+                    df.loc[tp] = series_in_df
+                else:
+                    first_series = series_in_df
 
-        list1 = dic_list[0]
-        #if not set(value.values()).issubset(set(sum([list(x.values()) for x in list(dic.values())], []))):
-        #set1 = frozenset(list1.items())
-        #set2 = set(dic_list[1])
-        #header_list = dic_list[0].keys()
+        #concat_df = pd.concat(df_dropped_list)
+        concat_df = pd.concat([df_dropped_list[0].set_index('page_id'), df_dropped_list[1].set_index('page_id')],
+                              keys=['Auto', 'Original'])
+        df_final = concat_df.swaplevel()[df_dropped_list[0].columns[1:]]
+
+        df_final.style.apply(highlight_diff, axis=None)
+        df_final.to_excel(writer, sheet_name="concat", index=False)
+
+        concat_df.drop_duplicates().sort_values(by=['page_id']).to_excel(writer, sheet_name="합집합", index=False)
+        #concat_df.drop_duplicates(['display_name', 'title']).sort_values(by=['page_id']).to_excel(writer, sheet_name="합집합", index=False)
+
+        concat_df['is_duplicate'] = concat_df.duplicated()
+        #concat_df['is_duplicate'] = concat_df.duplicated(['display_name', 'title'])
+        concat_df[concat_df.is_duplicate].drop(columns=['is_duplicate']).sort_values(by=['page_id']).to_excel(writer, sheet_name="교집합", index=False)
 
         writer.save()
 
 
-def get_set_data(data_list):
-    result_set = set()
-    for r in data_list:
-        if r['date'] is not None:
-            if r['date'] is not None:
-                if type(r['date']) is str:
-                    result_set.add((r['page_id'], r['page_title'].replace('_', ' ') if r['page_title'] is not None else 'None', r['date']))
-                else:
-                    result_set.add((r['page_id'], r['page_title'].replace('_', ' ') if r['page_title'] is not None else 'None', r['date'].strftime('%Y-%m-%d')))
-            else:
-                result_set.add((r['page_id'], r['page_title'].replace('_', ' ') if r['page_title'] is not None else 'None', 'None'))
-    return result_set
 
-if __name__ == '__main__':
-    excel_pds_tool = ExcelPandasTool()
-    #db_set = get_set_data(DB().select('select * FROM temp_' + attr))
-
-    # original
-    excel1 = get_set_data(excel_pds_tool.get_excel('ceo_0704.xlsx', 'refined'))
-    # auto refined
-    excel2 = get_set_data(excel_pds_tool.get_excel('ceo.xlsx'))
-
-    excel_set = excel1.union(excel2)
-
-    intersection_set = excel1.intersection(excel2)
-    #dif_db = db_set.difference(excel_set)
-    dif_excel = excel1.difference(excel2)
-    cnt = len(intersection_set)
-
-    #TODO create cnt_set from other sets
-
-    excel_tool.write_excel(intersection_set, 'intersection')
-    #excel_tool.write_excel(dif_db, 'dif_db')
-    excel_tool.write_excel(dif_excel, 'dif_excel')
-    #excel_tool.write_excel(cnt_set, 'count')
-    excel_tool.write_excel(excel1, 'original_1')
-    excel_tool.write_excel(excel2, 'original_1')
