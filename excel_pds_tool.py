@@ -3,13 +3,9 @@ import pandas as pd
 import numpy as np
 import math
 
-
-def highlight_diff(data, color='yellow'):
-    attr = 'background-color: {}'.format(color)
-    other = data.xs('First', axis='columns', level=-1)
-    return pd.DataFrame(np.where(data.ne(other, level=0), attr, ''),
-                        index=data.index, columns=data.columns)
-
+def highlight_cells():
+    # provide your criteria for highlighting the cells here
+    return ['background-color: yellow']
 
 class ExcelPandasTool:
 
@@ -43,8 +39,6 @@ class ExcelPandasTool:
         for df in df_dropped_list[1:]:
             first_series = df.iloc[0]
             for tp, series_in_df in df.iterrows():
-                if tp is 935:
-                    print('!')
                 if series_in_df['page_id'] == first_series['page_id']:
                     if type(series_in_df['page_title']) is float and math.isnan(series_in_df['page_title']):
                         series_in_df['page_title'] = first_series['page_title']
@@ -59,21 +53,26 @@ class ExcelPandasTool:
                 else:
                     first_series = series_in_df
 
-        #concat_df = pd.concat(df_dropped_list)
-        concat_df = pd.concat([df_dropped_list[0].set_index('page_id'), df_dropped_list[1].set_index('page_id')],
-                              keys=['Auto', 'Original'])
-        df_final = concat_df.swaplevel()[df_dropped_list[0].columns[1:]]
+        df_final = pd.concat([df_dropped_list[0].set_index('page_id'), df_dropped_list[1].set_index('page_id')],
+                             keys=['Auto', 'Original']).sort_values(by=['page_id', 'display_name'])
+        df_final.to_excel(writer, sheet_name="총집합")
 
-        df_final.style.apply(highlight_diff, axis=None)
-        df_final.to_excel(writer, sheet_name="concat", index=False)
+        cp1 = df_final.copy()
+        cp2 = df_final.copy()
+        cp3 = df_final.copy()
 
-        concat_df.drop_duplicates().sort_values(by=['page_id']).to_excel(writer, sheet_name="합집합", index=False)
-        #concat_df.drop_duplicates(['display_name', 'title']).sort_values(by=['page_id']).to_excel(writer, sheet_name="합집합", index=False)
+        cp1 = cp1.drop_duplicates().sort_values(by=['page_id', 'display_name'])
+        cp1.to_excel(writer, sheet_name="합집합")
 
-        concat_df['is_duplicate'] = concat_df.duplicated()
-        #concat_df['is_duplicate'] = concat_df.duplicated(['display_name', 'title'])
-        concat_df[concat_df.is_duplicate].drop(columns=['is_duplicate']).sort_values(by=['page_id']).to_excel(writer, sheet_name="교집합", index=False)
+        cp2['is_duplicate'] = cp2.duplicated(keep='last')
+        cp2 = cp2[cp2.is_duplicate].drop(columns=['is_duplicate']).sort_values(by=['page_id', 'display_name'])
+        cp2.to_excel(writer, sheet_name="교집합")
 
+        cp3['is_duplicate_false'] = cp3.duplicated(keep=False)
+        cp3 = cp3[~cp3.is_duplicate_false].drop(columns=['is_duplicate_false']).sort_values(by=['page_id', 'display_name'])
+        cp3.to_excel(writer, sheet_name="중복 전부 제거")
+
+        print(len(cp1), len(cp2), len(cp3))
         writer.save()
 
 
