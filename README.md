@@ -4,6 +4,10 @@
 
  같은 어트리뷰트에 해당하는 두 엑셀 파일을 비교하고, 결과를 xlsx 파일로 출력하는 툴입니다.
  
+ Current In/Out file directory is './'(file execute directory).
+
+ 현재 입출력 파일의 디렉토리는 ./(현재 파일 실행 디렉토리)으로 되어 있습니다.
+ 
  Codes are based on wiki_refine_tool and the point is excel_pds_tool.py
  
  코드의 베이스는 wiki_refine_tool이며 주요 부분은 excel_pds_tool 코드 부분입니다.
