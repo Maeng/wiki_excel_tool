@@ -1,6 +1,5 @@
 from db import DB
 import pandas as pd
-import numpy as np
 import math
 
 def highlight_cells():
