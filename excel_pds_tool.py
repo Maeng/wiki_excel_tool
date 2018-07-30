@@ -21,7 +21,6 @@ class ExcelPandasTool:
     def get_dict_from_df(df):
         return df.to_dict('records')
 
-
     def write_compare_excel(self, excel_file_list):
         writer = pd.ExcelWriter(self.file_name, engine='xlsxwriter', options={'strings_to_urls': False})
 
