@@ -70,7 +70,9 @@ class ExcelPandasTool:
         cp3 = cp3[~cp3.is_duplicate_false].drop(columns=['is_duplicate_false']).sort_values(by=['page_id', 'display_name'])
         cp3.to_excel(writer, sheet_name="중복 전부 제거")
 
-        print(len(cp1), len(cp2), len(cp3))
+        print(len(df_dropped_list[0]), len(df_dropped_list[1]), len(df_final), len(cp1), len(cp2), len(cp3))
+        print("자동정제 기준 매치율 : " + str(len(cp2)/len(df_dropped_list[0])))
+        print("기존정제 기준 매치율 : " + str(len(cp2)/len(df_dropped_list[1])))
         writer.save()
 
 
