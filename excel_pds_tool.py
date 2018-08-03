@@ -34,6 +34,7 @@ class ExcelPandasTool:
             df_dropped = df.drop(columns=['wiki_id', 'detail_info'])
             df_dropped_list.append(df_dropped)
 
+        df_dropped_first = df_dropped_list[0].drop(columns=['refine_type', 'dump_date'])
         for df in df_dropped_list[1:]:
             first_series = df.iloc[0]
             for tp, series_in_df in df.iterrows():
@@ -51,8 +52,10 @@ class ExcelPandasTool:
                 else:
                     first_series = series_in_df
 
-        df_final = pd.concat([df_dropped_list[0].set_index('page_id'), df_dropped_list[1].set_index('page_id')],
-                             keys=['Auto', 'Original']).sort_values(by=['page_id', 'display_name'])
+        # df_final = pd.concat([df_dropped_first.set_index('page_id'), df_dropped_list[1].set_index('page_id')],
+        #                      keys=['Auto', 'Original']).sort_values(by=['page_id', 'display_name'])
+        df_final = pd.concat([df_dropped_list[1].set_index('page_id'), df_dropped_first.set_index('page_id')],
+                             keys=['Original', 'Auto']).sort_values(by=['page_id', 'display_name'])
         df_final.to_excel(writer, sheet_name="총집합")
 
         cp1 = df_final.copy()
@@ -60,19 +63,33 @@ class ExcelPandasTool:
         cp3 = df_final.copy()
 
         cp1 = cp1.drop_duplicates().sort_values(by=['page_id', 'display_name'])
-        cp1.to_excel(writer, sheet_name="합집합")
+        cp1.to_excel(writer, sheet_name="합집합", merge_cells=False)
 
         cp2['is_duplicate'] = cp2.duplicated(keep='last')
         cp2 = cp2[cp2.is_duplicate].drop(columns=['is_duplicate']).sort_values(by=['page_id', 'display_name'])
-        cp2.to_excel(writer, sheet_name="교집합")
+        cp2.to_excel(writer, sheet_name="교집합", merge_cells=False)
 
         cp3['is_duplicate_false'] = cp3.duplicated(keep=False)
         cp3 = cp3[~cp3.is_duplicate_false].drop(columns=['is_duplicate_false']).sort_values(by=['page_id', 'display_name'])
-        cp3.to_excel(writer, sheet_name="중복 전부 제거")
+        cp3.to_excel(writer, sheet_name="중복 전부 제거", merge_cells=False)
 
         print(len(df_dropped_list[0]), len(df_dropped_list[1]), len(df_final), len(cp1), len(cp2), len(cp3))
         print("자동정제 기준 매치율 : " + str(len(cp2)/len(df_dropped_list[0])))
         print("기존정제 기준 매치율 : " + str(len(cp2)/len(df_dropped_list[1])))
+
+        rate_data = {'기준 수':  ['자동정제 : ' + str(len(df_dropped_list[0])),
+                               '기존정제 : ' + str(len(df_dropped_list[1])),
+                               '합집합 : ' + str(len(cp1))],
+                     '정제 갯수':  ['교집합 : ' + str(len(cp2)),
+                                '교집합 : ' + str(len(cp2)),
+                                '교집합 : ' + str(len(cp2))],
+                     '정제율':  [str(len(cp2)/len(df_dropped_list[0])),
+                              str(len(cp2) / len(df_dropped_list[1])),
+                              str(len(cp2) / len(cp1))]}
+
+        rate_sheet = pd.DataFrame(rate_data)
+        rate_sheet.to_excel(writer, sheet_name="정제율", merge_cells=False, index=False)
+
         writer.save()
 
 
