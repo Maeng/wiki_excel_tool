@@ -1,10 +1,10 @@
 # wiki_excel_tool
 
- The tool compares two excel files in same attribute and make xlsx file including the result of compare.
+ The tool compares two excel files in same attribute and make xlsx file including the result of comparison.
 
  같은 어트리뷰트에 해당하는 두 엑셀 파일을 비교하고, 결과를 xlsx 파일로 출력하는 툴입니다.
  
- Current In/Out file directory is './'(file execute directory).
+ Currently, In/Out file directory is './'(file execute directory).
 
  현재 입출력 파일의 디렉토리는 ./(현재 파일 실행 디렉토리)으로 되어 있습니다.
  
